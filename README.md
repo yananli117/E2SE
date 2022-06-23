@@ -83,3 +83,18 @@ Secondly, run the client under the E2se4j directory:
 ```java -jar E2se4j-1.0-SNAPSHOT-jar-with-dependencies.jar "client" “path of a file to deposit” ```
 
 Thirdly, keep the key server running, and re-run the client with different sizes of files.
+
+## Test
+
+###  for the efficiency, 
+Generate a file of n megabytes
+  ```
+  cd testGuide
+  javac ComFile1.java
+  java ComFile1 n 
+  ```
+###  Throughput test
+run the following command and replace the ip address of key server
+
+```
+siege -c 400 -r 250 "https://IpAddress:3443/webdemo1/oprf2?uid=user111&ecP=AvJmk/MFsHRH9axY6bugpRrghX8xrWYwQdYap9dy95H2"
