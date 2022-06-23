@@ -86,8 +86,10 @@ Thirdly, keep the key server running, and re-run the client with different sizes
 
 ## Test
 
-###  for the efficiency, 
-Generate a file of n megabytes
+###  Efficiency test
+follow the run instructions, take a file as input and get the output. The output varies with different file sizes.
+
+You can follow the listing commands to generate a file of n megabytes
   ```
   cd testGuide
   javac ComFile1.java
