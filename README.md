@@ -22,7 +22,7 @@ Download the full repository fot both the client and key server.
 ### software requirements on both client and key server
 
 - JDK 8 or later
-- Maven 3.6.0 or later
+- Maven 3.8.1 or later
 - OpenSSL and libssl-dev
 
 ### hardware requirement to the client: 
