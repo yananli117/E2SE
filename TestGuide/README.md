@@ -32,12 +32,12 @@ I show the instructions in ubuntu 18.04
 
 - upload the nginx configuration file directory nginx_conf and the key server package websever1.war
 - move the file to tomcat directory: ```mv ./webdemo1.war tomcat/apache-tomcat-9.0.56/webapps/```
-- link the configuration file to nginx 
+- link the configuration file to nginx (the path should be absolute path, say replacing ~ with the absolute path to the directory nginx_config)
 ```
    sudo ln -s ~/nginx_config/tomcat_nginx.conf /etc/nginx/sites-enabled/ 
    sudo ln -s ~/nginx_config/tomcat_nginx_ssl.conf /etc/nginx/sites-enabled/
 ```
-- change the nginx configurations
+- change the nginx configurations. If you have a special configuration on the path of log, tls certificates, and static page, please modify accordingly these information in nginx configuration files.
 ``` 
     vim ~/nginx_config/tomcat_nginx.conf
     vim ~/nginx_config/tomcat_nginx_ssl.conf
@@ -71,4 +71,3 @@ siege -V
 - test IBOPRF, relpace the <iPAddress> with server ip address, run
    
 ```siege -c 400 -r 250 "https://<iPAddress>:3443/webdemo1/oprf2?uid=user111&ecP=AvJmk/MFsHRH9axY6bugpRrghX8xrWYwQdYap9dy95H2"```
-
