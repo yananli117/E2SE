@@ -96,7 +96,4 @@ You can follow the listing commands to generate a file of n megabytes
   java ComFile1 n 
   ```
 ###  Throughput test
-run the following command and replace the ip address of key server
-
-```
-siege -c 400 -r 250 "https://IpAddress:3443/webdemo1/oprf2?uid=user111&ecP=AvJmk/MFsHRH9axY6bugpRrghX8xrWYwQdYap9dy95H2"
+follow the instructions in TestGuild/README.md to install dependencies and the benchmark tool (Siege), configure key server and test client, and test the throughput of key server.
