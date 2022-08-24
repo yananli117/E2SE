@@ -91,7 +91,7 @@ follow the run instructions, take a file as input and get the output. The output
 
 You can follow the listing commands to generate a file of n megabytes
   ```
-  cd testGuide
+  cd TestGuide
   javac ComFile1.java
   java ComFile1 n 
   ```
