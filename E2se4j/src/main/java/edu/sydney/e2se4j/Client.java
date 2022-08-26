@@ -2,6 +2,7 @@ package edu.sydney.e2se4j;
 
 import org.bouncycastle.math.ec.ECPoint;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.time.StopWatch;
 
 import javax.crypto.*;
 import javax.crypto.spec.GCMParameterSpec;
@@ -43,6 +44,11 @@ public class Client {
     private int kdfHashRepetitions;
     private boolean useTLS;
 
+    private final String accessKeyId;
+    private final String secretKeyId;
+    private final String regionName;
+    public final String bucketName;
+
     /**
      * S3 credential configuration
      * @param accessKeyId: S3 credential
@@ -50,11 +56,11 @@ public class Client {
      * @param regionName
      * @param bucketName
      */
-    private static final String accessKeyId = "please enter the S3 credential access";
+    /*private static final String accessKeyId = "please enter the S3 credential access";
     private static final String secretKeyId = "please enter the S3 credential access";
     private static final String regionName = "ap-northeast-1";
     public static final String bucketName = "mybucket-tokyo2022";
-
+*/
     private static final boolean verbose = false;
 
     private static final String internalCipherFilePath = Constants.FILE_PATH + "internal";
@@ -92,27 +98,40 @@ public class Client {
         void log(String message);
     }
 
-    public Client() {
-        this(SSLSocketFactory.getDefault(), new Client.Logger() {
+    public Client(String accessKeyId, String secretKeyId, String regionName, String bucketName) {
+
+        this(SSLSocketFactory.getDefault(), new Client.Logger(){
 
             @Override
             public void log(String message) {
                 System.out.println(message);
             }
-
             @Override
             public void log(String tag, String message) {
                 log(tag + ": " + message);
             }
-        }, Constants.KDF_HASH_REPETITIONS, Constants.USE_TLS);
+        }, Constants.KDF_HASH_REPETITIONS, Constants.USE_TLS, accessKeyId, secretKeyId, regionName, bucketName);
     }
 
-    public Client(SocketFactory socketFactory, Logger logger, int kdmHashRepetitions, boolean useTLS) {
+
+    public Client(SocketFactory socketFactory, Logger logger, int kdmHashRepetitions, boolean useTLS, String accessKeyId, String secretKeyId, String regionName, String bucketName) {
         this.socketFactory = socketFactory;
         this.logger = logger;
         this.kdfHashRepetitions = kdmHashRepetitions;
         this.useTLS = useTLS;
+        this.accessKeyId = accessKeyId;
+        this.secretKeyId = secretKeyId;
+        this.regionName = regionName;
+
+        //this.accessKeyId = accessKeyId;
+        //this.secretKeyId = secretKeyId;
+        //this.regionName = regionName;
+        //this.bucketName = bucketName;
+
+        this.bucketName = bucketName;
     }
+
+
 
     /**
      * one user start the client, only runs register give and take procedure, including IBOPRF
@@ -125,92 +144,64 @@ public class Client {
         String userID = "username" + Utils.bytesToHex(randomBytes);
         rand.nextBytes(randomBytes);
         String passphrase = "passphrase" + Utils.bytesToHex(randomBytes);
-
         String key5 = "RGT"+userID + "/sid";
         String key6 = "RGT"+userID + "/rid";
 
-
         long giveTime, takeTime, oprfTime, oprfTime0, oprfTime1;
         byte[] msk, mskr;
-
         String hardenedPWD, hardenedPWD1;
+        StopWatch stopWatch = new StopWatch();
 
-        {
-            if (verbose) System.out.println("PASSWORD HARDENING PROTOCOL");
-            long start = System.currentTimeMillis();
-            hardenedPWD = ibOPRF(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase);
-            long elapsed = System.currentTimeMillis();
-            oprfTime = (elapsed - start);
-            if (verbose) System.out.println("PASSWORD HARDENING PROTOCOL time:" + oprfTime);
-        }
+        if (verbose) logger.log("PASSWORD HARDENING PROTOCOL");
+        stopWatch.start();
+        hardenedPWD = ibOPRF(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase);
+        stopWatch.stop();
+        oprfTime = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("PASSWORD HARDENING PROTOCOL time:" + oprfTime);
 
-        {
-            register(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase, bucketName, key5);
-        }
+        register(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase, bucketName, key5);
 
-        {
-            if (verbose) System.out.println("PASSWORD HARDENING PROTOCOL");
-            long start = System.currentTimeMillis();
-            hardenedPWD = ibOPRF(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase);
-            long elapsed = System.currentTimeMillis();
-            oprfTime0 = (elapsed - start);
-            if (verbose) System.out.println("PASSWORD HARDENING PROTOCOL time:" + oprfTime0);
-        }
+        if (verbose) logger.log("PASSWORD HARDENING PROTOCOL");
+        stopWatch.start();
+        ibOPRF(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase);
+        stopWatch.stop();
+        oprfTime0 = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("PASSWORD HARDENING PROTOCOL time",  ""+oprfTime0);
 
-        {
-            if (verbose) System.out.println("KEY DEPOSIT PROTOCOL");
-            long start = System.currentTimeMillis();
-            msk = give(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase, bucketName, key6, key5);
-            long elapsed = System.currentTimeMillis();
-            giveTime = (elapsed - start);
-            if (verbose) System.out.println("KEY DEPOSIT PROTOCOL time:" + giveTime);
+        if (verbose) logger.log("KEY DEPOSIT PROTOCOL");
+        stopWatch.start();
+        msk = give(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase, bucketName, key6, key5);
+        stopWatch.stop();
+        giveTime = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("KEY DEPOSIT PROTOCOL time", ""+giveTime);
 
-        }
+        if (verbose) logger.log("PASSWORD HARDENING PROTOCOL");
+        stopWatch.start();
+        hardenedPWD1 = ibOPRF(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase);
+        stopWatch.stop();
+        oprfTime1 = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("PASSWORD HARDENING PROTOCOL time", "" + oprfTime1);
 
-        {
-            if (verbose) System.out.println("PASSWORD HARDENING PROTOCOL");
-            long start = System.currentTimeMillis();
-            hardenedPWD1 = ibOPRF(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase);
-            long elapsed = System.currentTimeMillis();
-            oprfTime1 = (elapsed - start);
-            if (verbose) System.out.println("PASSWORD HARDENING PROTOCOL time:" + oprfTime1);
-        }
-
-        {
-            if (verbose) System.out.println("KEY RETRIEVAL PROTOCOL\n");
-
-            long start = System.currentTimeMillis();
-            mskr = take(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase, bucketName, key6, key5);
-            long elapsed = System.currentTimeMillis();
-            takeTime = elapsed - start;
-            if (verbose) System.out.println("Key Retrieval time =" + takeTime);
-            if (!Arrays.equals(msk, mskr)) {
-                throw new Exception("msk does not match");
-            }
+        if (verbose) logger.log("KEY RETRIEVAL PROTOCOL");
+        stopWatch.start();
+        mskr = take(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase, bucketName, key6, key5);
+        stopWatch.stop();
+        takeTime = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("Key Retrieval time =" + takeTime);
+        if (!Arrays.equals(msk, mskr)) {
+            throw new Exception("msk does not match");
         }
 
         System.out.println(oprfTime0 + "," + giveTime + "," + oprfTime1 + "," + takeTime);
         if (hardenedPWD1.equals(hardenedPWD)) ;
-        else System.out.println("The hardened password is " + hardenedPWD + "and " + hardenedPWD1);
-
-
+        else logger.log("The hardened password is " + hardenedPWD + "and " + hardenedPWD1);
     }
 
-/*
-    public static void main(String[] args) throws Exception {
-        System.out.println("TLS enabled: " + Constants.USE_TLS + ", PBKDF KDF iterations: " + Constants.KDF_HASH_REPETITIONS + ", PBKDF pwd hash iterations: " + Constants.PWD_HASH_REPETITIONS);
-
-        String sourceFilePath = args[0];
-        System.out.println("***********Testing File:" + sourceFilePath + "*************");
-        System.out.println("*************Spilt file by n=sqrt(s/20) ***********");
-        System.out.println("*************HereTest***********");
-        System.out.println("ibOPRF, give, ibOPRF, take, plainDep, plainRet, secureDepOpt, secureRetOpt, secureDep, secureRet, enc, dec, partNum");
-        for (int j = 0; j < 2; j++) {
-            Client client = new Client();
-            client.start(sourceFilePath);
-        }
-    }
-*/
     /**
      * one user start the client and run the full procedure:
      *
@@ -227,174 +218,132 @@ public class Client {
         String userID = "username" + Utils.bytesToHex(randomBytes);
         rand.nextBytes(randomBytes);
         String passphrase = "passphrase" + Utils.bytesToHex(randomBytes);
-
         String key0 = userID + "/sid";
         String key1 = userID + "/rid";
         String key2 = userID + "/optimizedEncryptedFile";
-
         String key3 = userID + "/plianFile";
         String key4 = userID + "/oneThreadEncryptedFile";
-
         long giveTime, takeTime, oprfTime, oprfTime0, oprfTime1;
         long encTime, decTime;
         long depPlainTime, retPlainTime, depEncTimeMultiThread, retDecTimeMultiThread, depEncTimeOneThread, retDecTimeOneThread;
         byte[] msk, mskr;
         int partNum;
-
         String hardenedPWD, hardenedPWD1;
+        StopWatch stopWatch = new StopWatch();
+        if (verbose) logger.log("PASSWORD HARDENING PROTOCOL");
+        stopWatch.start();
+        hardenedPWD = ibOPRF(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase);
+        stopWatch.stop();
+        oprfTime = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("PASSWORD HARDENING PROTOCOL time", ""+ oprfTime);
+/*
+        register(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase, bucketName, key0);
 
-        {
-            if (verbose) System.out.println("PASSWORD HARDENING PROTOCOL");
-            long start = System.currentTimeMillis();
-            hardenedPWD = ibOPRF(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase);
-            long elapsed = System.currentTimeMillis();
-            oprfTime = (elapsed - start);
-            if (verbose) System.out.println("PASSWORD HARDENING PROTOCOL time:" + oprfTime);
+        if (verbose) logger.log("PASSWORD HARDENING PROTOCOL");
+        stopWatch.start();
+        hardenedPWD = ibOPRF(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase);
+        stopWatch.stop();
+        oprfTime0 = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("PASSWORD HARDENING PROTOCOL time:" + oprfTime0);
+
+        if (verbose) logger.log("KEY DEPOSIT PROTOCOL");
+        stopWatch.start();
+        msk = give(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase, bucketName, key1, key0);
+        stopWatch.stop();
+        giveTime = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("KEY DEPOSIT PROTOCOL time:" + giveTime);
+
+        if (verbose) logger.log("ENCRYPT AND UPLOAD FILE");
+        stopWatch.start();
+        partNum = secureDepositOptimization(bucketName, key2, msk, sourceFilePath);
+        stopWatch.stop();
+        depEncTimeMultiThread = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("Enc and upload file time = " + depEncTimeMultiThread);
+
+        if (verbose) logger.log("PASSWORD HARDENING PROTOCOL");
+        stopWatch.start();
+        hardenedPWD1 = ibOPRF(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase);
+        stopWatch.stop();
+        oprfTime1 = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("PASSWORD HARDENING PROTOCOL time:" + oprfTime1);
+
+        if (verbose) logger.log("KEY RETRIEVAL PROTOCOL\n");
+        stopWatch.start();
+        mskr = take(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase, bucketName, key1, key0);
+        stopWatch.stop();
+        takeTime = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("Key Retrieval time =" + takeTime);
+        if (!Arrays.equals(msk, mskr)) {
+            throw new Exception("msk does not match");
         }
 
-        {
-            register(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase, bucketName, key0);
-        }
+        if (verbose) logger.log("RETRIEVE AND DEC FILE");
+        stopWatch.start();
+        secureRetrieveOptimization(partNum, bucketName, key2, mskr, optSecureRetFilePath);
+        stopWatch.stop();
+        retDecTimeMultiThread = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("Retrieve and dec time =" + retDecTimeMultiThread);
 
-        {
-            if (verbose) System.out.println("PASSWORD HARDENING PROTOCOL");
-            long start = System.currentTimeMillis();
-            hardenedPWD = ibOPRF(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase);
-            long elapsed = System.currentTimeMillis();
-            oprfTime0 = (elapsed - start);
-            if (verbose) System.out.println("PASSWORD HARDENING PROTOCOL time:" + oprfTime0);
-        }
+        if (verbose) logger.log("ENCRYPT AND UPLOAD FILE");
+        stopWatch.start();
+        secureDeposit(bucketName, key4, msk, sourceFilePath, internalCipherFilePath);
+        stopWatch.stop();
+        depEncTimeOneThread = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("Enc and upload file time = " + depEncTimeOneThread);
 
-        {
-            if (verbose) System.out.println("KEY DEPOSIT PROTOCOL");
-            long start = System.currentTimeMillis();
-            msk = give(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase, bucketName, key1, key0);
-            long elapsed = System.currentTimeMillis();
-            giveTime = (elapsed - start);
-            if (verbose) System.out.println("KEY DEPOSIT PROTOCOL time:" + giveTime);
+        if (verbose) logger.log("RETRIEVE AND DEC FILE\n");
+        stopWatch.start();
+        secureRetrieve(bucketName, key4, mskr, secureRetFilePath);
+        stopWatch.stop();
+        retDecTimeOneThread = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("Retrieve and dec time =" + retDecTimeOneThread);
 
-        }
+        if (verbose) logger.log("UPLOAD PLAIN FILE\n");
+        stopWatch.start();
+        depositPlainFile(bucketName, key3, sourceFilePath);
+        stopWatch.stop();
+        depPlainTime = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("Upload plain file time =" + depPlainTime);
 
-        {
-            if (verbose) System.out.println("ENCRYPT AND UPLOAD FILE");
-            long start = System.currentTimeMillis();
-            partNum = secureDepositOptimization(bucketName, key2, msk, sourceFilePath);
-            long elapsed = System.currentTimeMillis();
-            depEncTimeMultiThread = (elapsed - start);
+        if (verbose) logger.log("RETRIEVE PLAIN FILE");
+        stopWatch.start();
+        retrievePlainBigFile(bucketName, key3, plainFilePath);
+        stopWatch.stop();
+        retPlainTime = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("Retrieve plain file time =" + retPlainTime);
 
-            if (verbose) System.out.println("Enc and upload file time = " + depEncTimeMultiThread);
-        }
+        if (verbose) logger.log("Encrypt PLAIN FILE");
+        stopWatch.start();
+        encryptCTRBigFile(sourceFilePath, encryptionFilePath, msk);
+        stopWatch.stop();
+        encTime = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("Retrieve plain file time =" + encTime);
 
-        {
-            if (verbose) System.out.println("PASSWORD HARDENING PROTOCOL");
-            long start = System.currentTimeMillis();
-            hardenedPWD1 = ibOPRF(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase);
-            long elapsed = System.currentTimeMillis();
-            oprfTime1 = (elapsed - start);
-            if (verbose) System.out.println("PASSWORD HARDENING PROTOCOL time:" + oprfTime1);
-        }
-
-        {
-            if (verbose) System.out.println("KEY RETRIEVAL PROTOCOL\n");
-
-            long start = System.currentTimeMillis();
-            mskr = take(Constants.AUTH_SERVER_ADDRESS, Constants.AUTH_SERVER_PORT_NUMBER, Constants.AUTH_SERVER_NAME, userID, passphrase, bucketName, key1, key0);
-            long elapsed = System.currentTimeMillis();
-            takeTime = elapsed - start;
-            if (verbose) System.out.println("Key Retrieval time =" + takeTime);
-            if (!Arrays.equals(msk, mskr)) {
-                throw new Exception("msk does not match");
-            }
-        }
-
-        {
-            if (verbose) {
-                System.out.println("RETRIEVE AND DEC FILE\n");
-            }
-            long start = System.currentTimeMillis();
-            secureRetrieveOptimization(partNum, bucketName, key2, mskr, optSecureRetFilePath);
-            long elapsed = System.currentTimeMillis();
-            retDecTimeMultiThread = elapsed - start;
-            if (verbose) System.out.println("Retrieve and dec time =" + retDecTimeMultiThread);
-
-        }
-
-        {
-            if (verbose) System.out.println("ENCRYPT AND UPLOAD FILE");
-            long start = System.currentTimeMillis();
-            secureDeposit(bucketName, key4, msk, sourceFilePath, internalCipherFilePath);
-
-            long elapsed = System.currentTimeMillis();
-            depEncTimeOneThread = (elapsed - start);
-
-            if (verbose) System.out.println("Enc and upload file time = " + depEncTimeOneThread);
-        }
-
-        {
-            if (verbose) {
-                System.out.println("RETRIEVE AND DEC FILE\n");
-            }
-            long start = System.currentTimeMillis();
-            secureRetrieve(bucketName, key4, mskr, secureRetFilePath);
-            long elapsed = System.currentTimeMillis();
-            retDecTimeOneThread = elapsed - start;
-            if (verbose) System.out.println("Retrieve and dec time =" + retDecTimeOneThread);
-
-        }
-
-        {
-            if (verbose) {
-                System.out.println("UPLOAD PLAIN FILE\n");
-            }
-            long start = System.currentTimeMillis();
-            depositPlainFile(bucketName, key3, sourceFilePath);
-            long elapsed = System.currentTimeMillis();
-            depPlainTime = elapsed - start;
-            if (verbose) System.out.println("Upload plain file time =" + depPlainTime);
-
-        }
-
-        {
-            if (verbose) {
-                System.out.println("RETRIEVE PLAIN FILE");
-            }
-            long start = System.currentTimeMillis();
-            retrievePlainBigFile(bucketName, key3, plainFilePath);
-            long elapsed = System.currentTimeMillis();
-            retPlainTime = elapsed - start;
-            if (verbose) System.out.println("Retrieve plain file time =" + retPlainTime);
-
-        }
-
-        {
-            if (verbose) {
-                System.out.println("Encrypt PLAIN FILE");
-            }
-            long start = System.currentTimeMillis();
-            encryptCTRBigFile(sourceFilePath, encryptionFilePath, msk);
-            long elapsed = System.currentTimeMillis();
-            encTime = elapsed - start;
-            if (verbose) System.out.println("Retrieve plain file time =" + encTime);
-
-        }
-
-        {
-            if (verbose) {
-                System.out.println("Decrypt CT FILE");
-            }
-            long start = System.currentTimeMillis();
-            decryptCTRBigFile(encryptionFilePath, decryptionFilePath, mskr);
-            long elapsed = System.currentTimeMillis();
-            decTime = elapsed - start;
-            if (verbose) System.out.println("Retrieve plain file time =" + decTime);
-
-        }
-
+        if (verbose) logger.log("Decrypt CT FILE");
+        stopWatch.start();
+        decryptCTRBigFile(encryptionFilePath, decryptionFilePath, mskr);
+        stopWatch.stop();
+        decTime = stopWatch.getTime();
+        stopWatch.reset();
+        if (verbose) logger.log("Retrieve plain file time =" + decTime);
 
         System.out.println(oprfTime0 + "," + giveTime + "," + oprfTime1 + "," + takeTime + "," + depPlainTime + "," + retPlainTime + "," + depEncTimeMultiThread + "," + retDecTimeMultiThread + "," + depEncTimeOneThread + "," + retDecTimeOneThread + "," + encTime + "," + decTime + "," + partNum);
         if (hardenedPWD1.equals(hardenedPWD)) ;
-        else System.out.println("The hardened password is " + hardenedPWD + "and " + hardenedPWD1);
-
+        else logger.log("The hardened password is " + hardenedPWD + "and " + hardenedPWD1);
+*/
+        System.out.println(oprfTime);
     }
 
     /**
@@ -514,9 +463,11 @@ public class Client {
                 System.out.println("AWS Error Code:   " + ase.getErrorCode());
                 System.out.println("Error Type:       " + ase.getErrorType());
                 System.out.println("Request ID:       " + ase.getRequestId());
+                throw ase;
             } catch (AmazonClientException ace) {
                 System.out.println("Caught an AmazonClientException, which means the client encountered " + "a serious internal problem while trying to communicate with S3, " + "such as not being able to access the network.");
                 System.out.println("Error Message: " + ace.getMessage());
+                throw ace;
             }
         }
         byte[] t = Utils.KDF(sid, passphrase, Constants.KDF1_SALT, Constants.MAC_KEY_LENGTH, kdfHashRepetitions);
@@ -590,9 +541,11 @@ public class Client {
                 System.out.println("AWS Error Code:   " + ase.getErrorCode());
                 System.out.println("Error Type:       " + ase.getErrorType());
                 System.out.println("Request ID:       " + ase.getRequestId());
+                throw ase;
             } catch (AmazonClientException ace) {
                 System.out.println("Caught an AmazonClientException, which means the client encountered " + "a serious internal problem while trying to communicate with S3, " + "such as not being able to access the network.");
                 System.out.println("Error Message: " + ace.getMessage());
+                throw ace;
             }
         }
 
@@ -664,7 +617,7 @@ public class Client {
     public byte[] take(String authServerAddress, int authServerPort, String authServerName, String userID, String passphrase, String bucketName, String key1, String key0) throws Exception, IOException {
         BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, secretKeyId);
         if (verbose) {
-            System.out.format("Uploading  to S3 bucket %s...\n", bucketName);
+            logger.log("Uploading  to S3 bucket %s...\n", bucketName);
         }
         final AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(regionName).withCredentials(new AWSStaticCredentialsProvider(awsCreds)).build();
         byte[] sid = new byte[Constants.R_LENGTH];
@@ -685,9 +638,11 @@ public class Client {
             System.out.println("AWS Error Code:   " + ase.getErrorCode());
             System.out.println("Error Type:       " + ase.getErrorType());
             System.out.println("Request ID:       " + ase.getRequestId());
+            throw ase;
         } catch (AmazonClientException ace) {
             System.out.println("Caught an AmazonClientException, which means the client encountered " + "a serious internal problem while trying to communicate with S3, " + "such as not being able to access the network.");
             System.out.println("Error Message: " + ace.getMessage());
+            throw ace;
         }
         byte[] t = Utils.KDF(sid, passphrase, Constants.KDF1_SALT, Constants.MAC_KEY_LENGTH, kdfHashRepetitions);
         byte[] k1 = Utils.KDF(rid, passphrase, Constants.KDF2_SALT, Constants.ENC_KEY_LENGTH, kdfHashRepetitions);
@@ -706,14 +661,14 @@ public class Client {
         byte retrievalAuthServerResponse = (byte) in.read();
         switch (retrievalAuthServerResponse) {
             case Constants.RESP_TYPE_OK:
-                if (verbose) System.out.println("Retrieval protocol succeeded.");
+                if (verbose) logger.log("Retrieval protocol succeeded.");
                 break;
             case Constants.RESP_TYPE_ERROR:
-                System.out.println("Retrieval failed! (Auth Server returned error)");
+                logger.log("Retrieval failed! (Auth Server returned error)");
                 throw new Exception("Auth Server error in Retrieval Protocol!");
                 // break;
             default:
-                System.out.println("Received unexpected response from server.");
+                logger.log("Received unexpected response from server.");
                 throw new Exception("Auth Server error in Retrieval Protocol!");
         }
 
@@ -730,7 +685,7 @@ public class Client {
 
         byte[] taoCal = Utils.KDF(ivct, Arrays.toString(k2), Constants.KDF4_SALT, Constants.ENC_KEY_LENGTH, kdfHashRepetitions);
         if (!Arrays.equals(tao, taoCal)) {
-            System.out.println("User " + userID + " did not take a valid tao. Retrieval request ignored.");
+            logger.log("User " + userID + " did not take a valid tao. Retrieval request ignored.");
         }
 
         Cipher cipher = Cipher.getInstance(Constants.KEY_ENCRYPTION_ALGORITHM);
@@ -766,9 +721,11 @@ public class Client {
             System.out.println("AWS Error Code:   " + ase.getErrorCode());
             System.out.println("Error Type:       " + ase.getErrorType());
             System.out.println("Request ID:       " + ase.getRequestId());
+            throw ase;
         } catch (AmazonClientException ace) {
             System.out.println("Caught an AmazonClientException, which means the client encountered " + "a serious internal problem while trying to communicate with S3, " + "such as not being able to access the network.");
             System.out.println("Error Message: " + ace.getMessage());
+            throw ace;
         }
     }
 
@@ -803,12 +760,14 @@ public class Client {
             System.out.println("AWS Error Code:   " + ase.getErrorCode());
             System.out.println("Error Type:       " + ase.getErrorType());
             System.out.println("Request ID:       " + ase.getRequestId());
+            throw ase;
         } catch (AmazonClientException ace) {
             System.out.println("Caught an AmazonClientException, which means the client encountered " + "a serious internal problem while trying to communicate with S3, " + "such as not being able to access the network.");
             System.out.println("Error Message: " + ace.getMessage());
+            throw ace;
         } catch (FileNotFoundException afe) {
             System.err.println(afe.getMessage());
-            System.exit(1);
+            throw afe;
         } catch (IOException aie) {
             System.err.println(aie.getMessage());
             System.exit(1);
@@ -827,7 +786,7 @@ public class Client {
      * @throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException
      * @throws InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException
      */
-    public static long secureDepositReturnEncTime(String bucketName, String key2, byte[] sKey, String sourceFilePath, String internalCipherFilePath) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException {
+    public long secureDepositReturnEncTime(String bucketName, String key2, byte[] sKey, String sourceFilePath, String internalCipherFilePath) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException {
         long start = 0, end = 0;
         start = System.currentTimeMillis();
         encryptCTRBigFile(sourceFilePath, internalCipherFilePath, sKey);
@@ -850,9 +809,11 @@ public class Client {
             System.out.println("AWS Error Code:   " + ase.getErrorCode());
             System.out.println("Error Type:       " + ase.getErrorType());
             System.out.println("Request ID:       " + ase.getRequestId());
+            throw ase;
         } catch (AmazonClientException ace) {
             System.out.println("Caught an AmazonClientException, which means the client encountered " + "a serious internal problem while trying to communicate with S3, " + "such as not being able to access the network.");
             System.out.println("Error Message: " + ace.getMessage());
+            throw ace;
         }
         return EncTime;
     }
@@ -872,7 +833,7 @@ public class Client {
      * @throws IllegalBlockSizeException
      * @throws InvalidKeySpecException
      */
-    public static void secureDeposit(String bucketName, String key2, byte[] sKey, String sourceFilePath, String internalCipherFilePath) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException {
+    public void secureDeposit(String bucketName, String key2, byte[] sKey, String sourceFilePath, String internalCipherFilePath) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException {
         try {
             long start = System.currentTimeMillis();
             encryptCTRBigFile(sourceFilePath, internalCipherFilePath, sKey);
@@ -893,9 +854,11 @@ public class Client {
             System.out.println("AWS Error Code:   " + ase.getErrorCode());
             System.out.println("Error Type:       " + ase.getErrorType());
             System.out.println("Request ID:       " + ase.getRequestId());
+            throw ase;
         } catch (AmazonClientException ace) {
             System.out.println("Caught an AmazonClientException, which means the client encountered " + "a serious internal problem while trying to communicate with S3, " + "such as not being able to access the network.");
             System.out.println("Error Message: " + ace.getMessage());
+            throw ace;
         }
     }
 
@@ -954,7 +917,7 @@ public class Client {
      * @throws InvalidKeySpecException
      * @throws IOException
      */
-    public static void secureRetrieve(String bucketName, String key2, byte[] sKey, String desPath) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+    public void secureRetrieve(String bucketName, String key2, byte[] sKey, String desPath) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
         if (verbose) {
             System.out.format("Retrieving from S3 bucket %s...\n", bucketName);
         }
@@ -1002,9 +965,11 @@ public class Client {
             System.out.println("AWS Error Code:   " + ase.getErrorCode());
             System.out.println("Error Type:       " + ase.getErrorType());
             System.out.println("Request ID:       " + ase.getRequestId());
+            throw ase;
         } catch (AmazonClientException ace) {
             System.out.println("Caught an AmazonClientException, which means the client encountered " + "a serious internal problem while trying to communicate with S3, " + "such as not being able to access the network.");
             System.out.println("Error Message: " + ace.getMessage());
+            throw ace;
         } catch (FileNotFoundException afe) {
             System.err.println(afe.getMessage());
             System.exit(1);
@@ -1031,7 +996,7 @@ public class Client {
      * @throws InvalidKeySpecException
      * @throws IOException
      */
-    public static long secureRetrieveReturnDecTime(String bucketName, String key2, byte[] sKey, String desPath, String internalCipherFilePath) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException, IOException {
+    public long secureRetrieveReturnDecTime(String bucketName, String key2, byte[] sKey, String desPath, String internalCipherFilePath) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException, IOException {
         if (verbose) {
             System.out.format("Retrieving from S3 bucket %s...\n", bucketName);
         }
@@ -1083,9 +1048,11 @@ public class Client {
             System.out.println("AWS Error Code:   " + ase.getErrorCode());
             System.out.println("Error Type:       " + ase.getErrorType());
             System.out.println("Request ID:       " + ase.getRequestId());
+            throw ase;
         } catch (AmazonClientException ace) {
             System.out.println("Caught an AmazonClientException, which means the client encountered " + "a serious internal problem while trying to communicate with S3, " + "such as not being able to access the network.");
             System.out.println("Error Message: " + ace.getMessage());
+            throw ace;
         } catch (FileNotFoundException afe) {
             System.err.println(afe.getMessage());
             System.exit(1);
@@ -1108,7 +1075,7 @@ public class Client {
      * @callSubroutine EncThread()
      * @callSubroutine uploadFilePartsToS3()
      */
-    public static int secureDepositOptimization(String bucketName, String key2, byte[] sKey, String sourceFilePath) throws NoSuchPaddingException, IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException {
+    public int secureDepositOptimization(String bucketName, String key2, byte[] sKey, String sourceFilePath) throws NoSuchPaddingException, IOException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException {
         int partSize;
         int partNumber;
 
@@ -1143,7 +1110,7 @@ public class Client {
      * @param key2
      * @throws IOException
      */
-    public static void uploadFilePartsToS3(List<Integer> list, int partNum, String filePath, String bucketName, String key2) throws IOException {
+    public void uploadFilePartsToS3(List<Integer> list, int partNum, String filePath, String bucketName, String key2) throws IOException {
         BasicAWSCredentials awsCreds = new BasicAWSCredentials(accessKeyId, secretKeyId);
 
         final AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(regionName).withCredentials(new AWSStaticCredentialsProvider(awsCreds)).enableAccelerateMode().build();
@@ -1175,7 +1142,7 @@ public class Client {
      * @throws BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException, IOException
      * @callSubroutine StreamDecThread()
      */
-    public static void secureRetrieveOptimization(int partNum, String bucketName, String key2, byte[] sKey, String desPath) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException, IOException {
+    public void secureRetrieveOptimization(int partNum, String bucketName, String key2, byte[] sKey, String desPath) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, InvalidKeySpecException, IOException {
         List<InputStream> decList = new CopyOnWriteArrayList<>();
         if (verbose) {
             System.out.format("Retrieving from S3 bucket %s...\n", bucketName);
@@ -1220,9 +1187,11 @@ public class Client {
             System.out.println("AWS Error Code:   " + ase.getErrorCode());
             System.out.println("Error Type:       " + ase.getErrorType());
             System.out.println("Request ID:       " + ase.getRequestId());
+            throw ase;
         } catch (AmazonClientException ace) {
             System.out.println("Caught an AmazonClientException, which means the client encountered " + "a serious internal problem while trying to communicate with S3, " + "such as not being able to access the network.");
             System.out.println("Error Message: " + ace.getMessage());
+            throw ace;
         }
     }
 
@@ -1270,7 +1239,6 @@ public class Client {
         out.write(dec);
         in.close();
         out.close();
-
     }
 
 }
