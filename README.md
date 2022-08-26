@@ -36,8 +36,7 @@ Please make sure the above requirements are sattisfied fist and prepare the foll
 
 ### Access key to programmically access the AWS S3
 Given your own access key for S3, you can set the accessKeyId and secretKeyId in the code. Please refer to this guildline https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html for understanding and getting the access key of AWS.
-
-You can config your own access key and authserver ip, port, and name in the config.properties file
+The credential information is configered by yourself in the config.properties file. We will specify it in the Compile step.
 
 ### certificates for TLS communication
 During the communication between client and key server/cloud server, the client authenticates key server and cloud server via servers' certificates.
@@ -62,7 +61,6 @@ enter Yes to trust it and you can check the certificate is installed successfull
 ```keytool -list -keystore cacerts -alias theCARootNew ```
 
 If you use the certificates from other ways or change the storepass, please remember to change the certificate information of the authserver in the code. 
-
 Concretely, in Constant.java class, the AUTH_SERVER_KEYSTORE_PATH, AUTH_SERVER_KEYSTORE_PASSWORD, AUTH_SERVER_NAME imformation should be modified.
 
 ### key server ip
@@ -71,8 +69,9 @@ Concretely, in Constant.java class, the AUTH_SERVER_KEYSTORE_PATH, AUTH_SERVER_K
 
 ## Compile
 Without specification, the client and key server follow the same instructions. 
+Please make sure your devices satisfy the above requirements and the preparation is finished.
 
-Please make sure your devices satisfy the above requirements and the preparation is finished. Especially, the credential of S3 should be configured in the Client class.
+First, change the credential of S3 and the IP, Port, and name of auth server in the config.properties file. Those informattion should be consistent with your own ones.
 
 Then enter the directory E2se4j. 
 
