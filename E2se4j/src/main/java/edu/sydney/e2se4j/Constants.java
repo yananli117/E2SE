@@ -1,5 +1,10 @@
 package edu.sydney.e2se4j;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
+
 public class Constants {
     public static final boolean USE_TLS = true;
     public static final int PWD_HASH_REPETITIONS = 1;
@@ -44,14 +49,100 @@ public class Constants {
     public static final String KEY_ENCRYPTION_CTR_ALGORITHM = "AES/CTR/NoPadding";
     public static final int KEY_ENCRYPTION_CTR_IV_LENGTH = 128 / 8; // bytes
 
+    public static final String CLIENT = "client";
+    public static final String AUTH_SERVER = "authserver";
+
     public static final String FILE_PATH = "./DataFile/";
     public static final String AUTH_SERVER_KEYSTORE_PATH = "./certificatesNew/AuthServerKeyStore.jks";
     public static final String AUTH_SERVER_KEYSTORE_PASSWORD = "changeit";
     public static final String CURVE_NAME = "secp256r1";
 
 
-    public static final int AUTH_SERVER_PORT_NUMBER = 20202;
-    public static final String AUTH_SERVER_ADDRESS = "13.208.251.87";//ip
-    public static final String AUTH_SERVER_NAME = "CN=usyd.authserver,OU=authserver,O=server,L=sydney,ST=NSW,C=AU";
+//    public static final int AUTH_SERVER_PORT_NUMBER = 20202;
+//    public static final String AUTH_SERVER_ADDRESS = "localhost";//"13.208.251.87";//ip
+//    public static final String AUTH_SERVER_NAME = "CN=usyd.authserver,OU=authserver,O=server,L=sydney,ST=NSW,C=AU";
 
+    public static final String AUTH_SERVER_ADDRESS = setIP();
+    public static final int AUTH_SERVER_PORT_NUMBER = setPort();
+    public static final String AUTH_SERVER_NAME = setName();
+    static String setIP(){
+        Properties prop = new Properties();
+        InputStream input = null;
+        String authServerIp = null;
+        //String authServerPort = null;
+        //String regionName = null;
+        //String bucketName = null;
+
+        try {
+
+            input = new FileInputStream("config.properties");
+            prop.load(input);
+            authServerIp = prop.getProperty("authServerIp");
+            //System.out.println(authServerIp);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } finally {
+            if (input != null) {
+                try {
+                    input.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return authServerIp;
+    }
+    static int setPort(){
+        Properties prop = new Properties();
+        InputStream input = null;
+        String authServerPort = null;
+
+        try {
+
+            input = new FileInputStream("config.properties");
+            prop.load(input);
+            authServerPort = prop.getProperty("authServerPort");
+            //System.out.println(authServerPort);
+
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } finally {
+            if (input != null) {
+                try {
+                    input.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return Integer.parseInt(authServerPort);
+    }
+
+    static String setName(){
+        Properties prop = new Properties();
+        InputStream input = null;
+        String authServerName = null;
+        //String authServerPort = null;
+        //String regionName = null;
+        //String bucketName = null;
+
+        try {
+
+            input = new FileInputStream("config.properties");
+            prop.load(input);
+            authServerName = prop.getProperty("authServerName");
+            //System.out.println(authServerIp);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } finally {
+            if (input != null) {
+                try {
+                    input.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return authServerName;
+    }
 }
