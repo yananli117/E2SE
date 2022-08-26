@@ -102,4 +102,4 @@ You can follow the listing commands to generate a file of n megabytes
   java ComFile1 n 
   ```
 ###  Throughput test
-follow the instructions in TestGuild/README.md to install dependencies and the benchmark tool (Siege), configure key server and test client, and test the throughput of key server.
+follow the instructions in TestGuild/README.md to install dependencies and the benchmark tool (Siege), configure key server and test client, and test the throughput of key server. This is only for throughput test.
