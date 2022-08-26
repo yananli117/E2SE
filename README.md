@@ -26,7 +26,7 @@ Download the full repository fot both the client and key server.
 - OpenSSL and libssl-dev
 
 ### hardware requirement to the client: 
--Programmic access to the AWS S3 server. We just provide a private security credential to programmically access the AWS S3 for the Usenix artifact evaluation. 
+- Programmic access to the AWS S3 server. We just provide a private security credential to programmically access the AWS S3 for the Usenix artifact evaluation. 
 (If any user want to test/use this prototype, plaese first login AWS console via https://aws.amazon.com/ with your own AWS account and create the security credential to programically access the AWS S3. If users want to use other cloud storage services, the implementation of Client class should be modified a bit to apply to the APIs the storage cloud provides. So far the proviided prototype only support AWS S3 as the storage server.)
 
 - the client and key server could be deployed on different devices for standard use. It is ok to run two processes for the client and key server in one device to verify the function.
@@ -36,6 +36,8 @@ Please make sure the above requirements are sattisfied fist and prepare the foll
 
 ### Access key to programmically access the AWS S3
 Given your own access key for S3, you can set the accessKeyId and secretKeyId in the code. Please refer to this guildline https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html for understanding and getting the access key of AWS.
+
+You can config your own access key and authserver ip, port, and name in the config.properties file
 
 ### certificates for TLS communication
 During the communication between client and key server/cloud server, the client authenticates key server and cloud server via servers' certificates.
