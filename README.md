@@ -1,6 +1,5 @@
 # E2SE4j
-A Java prototype for paper 
-"End-to-Same-End Encryption: Modularly Augmenting an App with an Efficient, Portable, and Blind Cloud Storage"
+A Java prototype for the paper [End-to-Same-End Encryption: Modularly Augmenting an App with an Efficient, Portable, and Blind Cloud Storage](https://www.usenix.org/conference/usenixsecurity22/presentation/chen-long).
 
 ## Description
 E2SE is a system for securely storing private data in the cloud with the help of a key server (an App server).
