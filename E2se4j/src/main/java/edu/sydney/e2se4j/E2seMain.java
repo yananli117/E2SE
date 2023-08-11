@@ -43,7 +43,7 @@ public class E2seMain {
 
                     input = new FileInputStream("config.properties");
 
-                    //加载properties文件
+                    //load properties file
                     prop.load(input);
 
                     //get the property value and print it out
