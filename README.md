@@ -28,10 +28,10 @@ Download the full repository fot both the client and key server.
 - Programmic access to the AWS S3 server. We just provide a private security credential to programmically access the AWS S3 for the Usenix artifact evaluation. 
 (If any user want to test/use this prototype, plaese first login AWS console via https://aws.amazon.com/ with your own AWS account and create the security credential to programically access the AWS S3. If users want to use other cloud storage services, the implementation of Client class should be modified a bit to apply to the APIs the storage cloud provides. So far the proviided prototype only support AWS S3 as the storage server.)
 
-- the client and key server could be deployed on different devices for standard use. It is ok to run two processes for the client and key server in one device to verify the function.
+- The client and key server could be deployed on different devices for standard use. It is ok to run two processes for the client and key server in one device to verify the function.
 
 ## Preparation
-Please make sure the above requirements are sattisfied fist and prepare the following. 
+Please make sure the above requirements are satisfied fist and prepare the following. 
 
 ### Access key to programmically access the AWS S3
 Given your own access key for S3, you can set the accessKeyId and secretKeyId in the code. Please refer to this guildline https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html for understanding and getting the access key of AWS.
@@ -39,15 +39,16 @@ The credential information is configered by yourself in the config.properties fi
 
 ### Certificates for TLS communication
 During the communication between client and key server/cloud server, the client authenticates key server and cloud server via servers' certificates.
-The cloud server certificate is already trusted by any devices installing JDK.  We need to produce the certificate for the key server and let client trust the key server certificate.
+The cloud server certificate is already trusted by any devices installing JDK.
+We need to produce the certificate for the key server and let client trust the key server certificate.
 
 The configurations are as follows:
 
-- generate key server certificate
+- Generate key server certificate
 
 We have generated the self-signed CA root certificate using OpenSSL, and use it to sign the key server certificate. You can find the required certificates in E2se4j/certificateNew.
 
-- turst the key server certificate on client side by importing the certificate of key server into the Java cacerts keystore
+- Turst the key server certificate on client side by importing the certificate of key server into the Java cacerts keystore
 
 Here we take the certificates in E2se4j/certificateNew as an example and and show the import method in Linux command line:
 ```
@@ -56,25 +57,25 @@ cd $JAVA_HOME/jre/lib/security
 sudo chmod 777 cacerts #obtain the permission if needed
 keytool -import -v -trustcacerts -alias theCARootNew -file ./ca-certificate.pem -keystore cacerts -storepass changeit
 ```
-enter Yes to trust it and you can check the certificate is installed successfully:
+Enter Yes to trust it and you can check the certificate is installed successfully:
 ```keytool -list -keystore cacerts -alias theCARootNew ```
 
 If you use the certificates from other ways or change the storepass, please remember to change the certificate information of the authserver in the code. 
 Concretely, in Constant.java class, the AUTH_SERVER_KEYSTORE_PATH, AUTH_SERVER_KEYSTORE_PASSWORD, AUTH_SERVER_NAME imformation should be modified.
 
 ### Key server ip
-- on the client side, before compiling, configure the key server ip address in the Constant.java class, say the AUTH_SERVER_ADDRESS information.
+- On the client side, before compiling, configure the key server ip address in the Constant.java class, say the AUTH_SERVER_ADDRESS information.
 
 
 ## Compile
-Without specification, the client and key server follow the same instructions. 
+Without specification, please follow the same instruction to compile the client and key server. 
 Please make sure your devices satisfy the above requirements and the preparation is finished.
 
-First, change the credential of S3 and the IP, Port, and name of auth server in the config.properties file. Those informattion should be consistent with your own ones.
+First, set up the credential of S3 and the IP, Port, and name of auth server in the config.properties file. Those informattion should be consistent with your own ones.
 
 Then enter the directory E2se4j. 
 
-Compile and package : ``` mvn clean package ```
+Compile and package with: ``` mvn clean package ```
 
 Copy the produced jar package E2se4j-1.0-SNAPSHOT-jar-with-dependencies.jar in the target directory to the E2se4j directory:
 
@@ -92,7 +93,7 @@ Thirdly, keep the key server running, and re-run the client with different sizes
 ## Test
 
 ###  Efficiency test
-follow the run instructions, take a file as input and get the output. The output varies with different file sizes.
+Follow the run instructions, take a file as input and get the output. The output varies with different file sizes.
 
 You can follow the listing commands to generate a file of n megabytes
   ```
@@ -101,4 +102,4 @@ You can follow the listing commands to generate a file of n megabytes
   java ComFile1 n 
   ```
 ###  Throughput test
-follow the instructions in TestGuild/README.md to install dependencies and the benchmark tool (Siege), configure key server and test client, and test the throughput of key server. This is only for throughput test.
+Follow the instructions in TestGuild/README.md to install dependencies and the benchmark tool (Siege), configure key server and test client, and test the throughput of key server. This is only for throughput test.
