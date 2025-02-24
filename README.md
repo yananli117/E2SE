@@ -18,13 +18,13 @@ The supported operations that users could do are as following:
 Download the full repository fot both the client and key server.
 
 ## Requirements
-### software requirements on both client and key server
+### Software requirements on both client and key server
 
 - JDK 8 or later
 - Maven 3.8.1 or later
 - OpenSSL and libssl-dev
 
-### hardware requirement to the client: 
+### Hardware requirement to the client: 
 - Programmic access to the AWS S3 server. We just provide a private security credential to programmically access the AWS S3 for the Usenix artifact evaluation. 
 (If any user want to test/use this prototype, plaese first login AWS console via https://aws.amazon.com/ with your own AWS account and create the security credential to programically access the AWS S3. If users want to use other cloud storage services, the implementation of Client class should be modified a bit to apply to the APIs the storage cloud provides. So far the proviided prototype only support AWS S3 as the storage server.)
 
@@ -37,7 +37,7 @@ Please make sure the above requirements are sattisfied fist and prepare the foll
 Given your own access key for S3, you can set the accessKeyId and secretKeyId in the code. Please refer to this guildline https://docs.aws.amazon.com/general/latest/gr/aws-sec-cred-types.html for understanding and getting the access key of AWS.
 The credential information is configered by yourself in the config.properties file. We will specify it in the Compile step.
 
-### certificates for TLS communication
+### Certificates for TLS communication
 During the communication between client and key server/cloud server, the client authenticates key server and cloud server via servers' certificates.
 The cloud server certificate is already trusted by any devices installing JDK.  We need to produce the certificate for the key server and let client trust the key server certificate.
 
@@ -62,7 +62,7 @@ enter Yes to trust it and you can check the certificate is installed successfull
 If you use the certificates from other ways or change the storepass, please remember to change the certificate information of the authserver in the code. 
 Concretely, in Constant.java class, the AUTH_SERVER_KEYSTORE_PATH, AUTH_SERVER_KEYSTORE_PASSWORD, AUTH_SERVER_NAME imformation should be modified.
 
-### key server ip
+### Key server ip
 - on the client side, before compiling, configure the key server ip address in the Constant.java class, say the AUTH_SERVER_ADDRESS information.
 
 
